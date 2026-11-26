@@ -181,3 +181,4 @@ Pruébalo con `evaluar.ts` apenas despliegues.
 - llena `fuente` y `fecha_verificacion`;
 - marca `verificado = true`;
 - vuelve a ejecutar `/generar-embeddings`.
+
