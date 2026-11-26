@@ -1,0 +1,27 @@
+# Configuración mínima. `supabase init` genera una más completa;
+# si la usas, conserva estas secciones de funciones.
+project_id = "viva-cocha"
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+# Endpoints públicos de la app (el frontend envía la anon key).
+[functions.ruta]
+verify_jwt = true
+
+[functions.ruta-sin-ia]
+verify_jwt = true
+
+[functions.escanear]
+verify_jwt = true
+
+[functions.lugares]
+verify_jwt = true
+
+[functions.reporte]
+verify_jwt = true
+
+# Endpoint de administración: se protege con x-admin-key.
+[functions.generar-embeddings]
+verify_jwt = false
