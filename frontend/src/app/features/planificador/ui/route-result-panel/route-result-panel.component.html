@@ -1,0 +1,87 @@
+<section class="result-panel panel" aria-label="Resultado de la ruta" aria-live="polite" [attr.aria-busy]="cargando">
+  @if (cargando) {
+    <div class="loading-state">
+      <span class="loading-ring" aria-hidden="true"></span>
+      <p class="section-kicker">Un momento</p>
+      <h2>Ordenando tu recorrido</h2>
+      <p>Estamos revisando tiempo, presupuesto y lugares disponibles.</p>
+    </div>
+  } @else if (resultado; as respuesta) {
+    @if (respuesta.estado === 'ok' && respuesta.ruta; as ruta) {
+      <div class="route-result">
+        <div class="result-heading">
+          <div>
+            <p class="section-kicker">Tu recorrido</p>
+            <h2>{{ respuesta.itinerario?.titulo || 'Ruta sugerida' }}</h2>
+          </div>
+          <span class="source-pill" [class.source-pill--ai]="respuesta.texto_fuente === 'ia'">
+            {{ respuesta.texto_fuente === 'ia' ? 'Redacción con IA' : 'Planificador local' }}
+          </span>
+        </div>
+        @if (respuesta.itinerario?.introduccion) { <p class="route-intro">{{ respuesta.itinerario?.introduccion }}</p> }
+
+        <div class="route-metrics" aria-label="Resumen de la ruta">
+          <div class="metric metric--cost"><span>Costo estimado</span><strong>Bs {{ formatoBs(ruta.costo_min) }}–{{ formatoBs(ruta.costo_max) }}</strong></div>
+          <div class="metric"><span>Tiempo total</span><strong>{{ formatoDuracion(ruta.minutos_total) }}</strong></div>
+          <div class="metric"><span>Recorrido</span><strong>{{ formatoKm(ruta.km_total) }} km</strong></div>
+        </div>
+
+        <div class="stops-heading"><h3>Paradas</h3><span>{{ ruta.paradas.length }} lugares</span></div>
+        <div class="stop-list">
+          @for (parada of ruta.paradas; track parada.lugar.id) {
+            <article class="stop-card">
+              <div class="stop-number">{{ parada.orden < 10 ? '0' : '' }}{{ parada.orden }}</div>
+              <div class="stop-content">
+                <div class="stop-title-row">
+                  <div>
+                    <p class="stop-type">{{ nombreTipo(parada.lugar.tipo) }}<span>·</span>{{ parada.lugar.zona || 'Cochabamba' }}</p>
+                    <h4>{{ parada.lugar.nombre }}</h4>
+                  </div>
+                  <span class="verification-tag" [class.verification-tag--verified]="parada.lugar.verificado">
+                    {{ parada.lugar.verificado ? 'Verificado' : 'Por verificar' }}
+                  </span>
+                </div>
+                <p class="stop-description">{{ textoParada(parada.lugar.id) || parada.lugar.descripcion || 'Sin descripción en el catálogo.' }}</p>
+                <div class="stop-details">
+                  <span>Bs {{ formatoBs(parada.lugar.precio_min) }}–{{ formatoBs(parada.lugar.precio_max) }}</span>
+                  <span>{{ formatoDuracion(parada.lugar.duracion_min) }}</span>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+
+        @if (respuesta.itinerario?.consejo) { <p class="route-advice"><strong>Consejo</strong>{{ respuesta.itinerario?.consejo }}</p> }
+        @if (respuesta.avisos.length) {
+          <ul class="route-warnings">@for (aviso of respuesta.avisos; track aviso) { <li>{{ aviso }}</li> }</ul>
+        }
+      </div>
+    } @else if (respuesta.estado === 'sin_resultados') {
+      <div class="empty-result empty-result--message">
+        <span class="result-mark" aria-hidden="true">—</span>
+        <p class="section-kicker">Sin coincidencias</p>
+        <h2>Prueba con más tiempo o presupuesto</h2>
+        <p>{{ respuesta.avisos[0] || 'Cambia tus preferencias para buscar otros lugares del catálogo.' }}</p>
+      </div>
+    } @else {
+      <div class="empty-result empty-result--message">
+        <span class="result-mark" aria-hidden="true">?</span>
+        <p class="section-kicker">Falta información</p>
+        <h2>Completa algunos datos</h2>
+        <p>La ruta necesita {{ respuesta.faltan?.join(' y ') || 'más información sobre tu plan' }} para continuar.</p>
+      </div>
+    }
+  } @else {
+    <div class="empty-result">
+      <div class="route-sketch" aria-hidden="true"><span></span><i></i><span></span><i></i><span></span></div>
+      <p class="section-kicker">Una ruta, paso a paso</p>
+      <h2>Tu recorrido empieza aquí</h2>
+      <p>Cuéntanos qué te interesa. Buscaremos lugares del catálogo local que se ajusten a tu plan.</p>
+      <div class="process-list">
+        <div><span>01</span><p>Indica tiempo y presupuesto</p></div>
+        <div><span>02</span><p>Explora lugares cercanos</p></div>
+        <div><span>03</span><p>Recibe un recorrido ordenado</p></div>
+      </div>
+    </div>
+  }
+</section>

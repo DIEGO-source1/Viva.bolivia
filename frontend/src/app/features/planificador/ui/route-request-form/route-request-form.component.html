@@ -1,0 +1,105 @@
+<aside class="form-panel panel">
+  <div class="panel-heading">
+    <p class="section-kicker">Tu próxima salida</p>
+    <h2>¿Qué te gustaría hacer?</h2>
+    <p class="panel-description">Cuéntanos tu idea o ajusta los detalles a mano.</p>
+  </div>
+
+  <div class="mode-switch" aria-label="Método para crear la ruta">
+    <button type="button" [attr.aria-pressed]="modo === 'ia'" [class.is-active]="modo === 'ia'" (click)="cambiarModo('ia')">
+      <span class="mode-index">A</span><span>Cuéntame tu plan</span>
+    </button>
+    <button type="button" [attr.aria-pressed]="modo === 'manual'" [class.is-active]="modo === 'manual'" (click)="cambiarModo('manual')">
+      <span class="mode-index">B</span><span>Completar datos</span>
+    </button>
+  </div>
+
+  <form class="route-form" (ngSubmit)="enviarSolicitud()">
+    @if (modo === 'ia') {
+      <div class="field-group">
+        <label for="plan-request">Describe tu plan</label>
+        <textarea
+          id="plan-request"
+          name="texto"
+          [(ngModel)]="texto"
+          minlength="3"
+          [attr.maxlength]="limiteTexto"
+          required
+          placeholder="Quiero probar comida típica. Tengo Bs 60 y 2 horas."
+          rows="4"
+        ></textarea>
+        <div class="field-footnote"><span>Incluye tiempo y presupuesto si ya los sabes.</span><span>{{ texto.length }}/{{ limiteTexto }}</span></div>
+      </div>
+
+      @if (datosFaltantes.length) {
+        <div class="follow-up-fields" aria-label="Datos que faltan para generar tu ruta">
+          <p>Ya tenemos tu idea. Completa solo lo que falta:</p>
+          <div class="field-row">
+            @if (datosFaltantes.includes('presupuesto')) {
+              <div class="field-group">
+                <label for="ai-budget">Presupuesto</label>
+                <div class="input-with-unit"><span>Bs</span><input id="ai-budget" name="presupuestoPendiente" type="number" min="1" max="10000" step="5" [(ngModel)]="presupuestoPendiente" required></div>
+              </div>
+            }
+            @if (datosFaltantes.includes('horas')) {
+              <div class="field-group">
+                <label for="ai-time">Tiempo disponible</label>
+                <div class="input-with-unit"><input id="ai-time" name="horasPendientes" type="number" min="0.25" max="24" step="0.25" [(ngModel)]="horasPendientes" required><span>horas</span></div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    } @else {
+      <div class="field-row">
+        <div class="field-group">
+          <label for="budget">Presupuesto</label>
+          <div class="input-with-unit"><span>Bs</span><input id="budget" name="presupuesto" type="number" min="1" max="10000" step="5" [(ngModel)]="presupuesto" required></div>
+        </div>
+        <div class="field-group">
+          <label for="time">Tiempo disponible</label>
+          <div class="input-with-unit"><input id="time" name="horas" type="number" min="0.25" max="24" step="0.25" [(ngModel)]="horas" required><span>horas</span></div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label for="zone">Zona <span class="label-optional">Opcional</span></label>
+        <input id="zone" name="zona" type="text" maxlength="80" [(ngModel)]="zona" placeholder="Ej. Centro">
+      </div>
+
+      <fieldset class="type-fieldset">
+        <legend>¿Qué lugares te interesan?</legend>
+        <div class="type-options">
+          @for (tipo of tiposLugar; track tipo.id) {
+            <label class="type-chip" [class.is-selected]="tieneTipo(tipo.id)">
+              <input type="checkbox" [checked]="tieneTipo(tipo.id)" (change)="alternarTipo(tipo.id)">
+              <span>{{ tipo.label }}</span>
+            </label>
+          }
+        </div>
+      </fieldset>
+    }
+
+    <label class="open-filter">
+      <input type="checkbox" name="soloAbiertos" [(ngModel)]="soloAbiertos">
+      <span class="check-mark" aria-hidden="true"></span>
+      <span>Priorizar lugares abiertos ahora</span>
+    </label>
+
+    <button class="primary-button" type="submit" [disabled]="!puedeGenerar">
+      @if (cargando) { <span class="button-spinner" aria-hidden="true"></span><span>Preparando ruta</span> }
+      @else { <span>Encontrar mi ruta</span><span class="button-arrow" aria-hidden="true">↗</span> }
+    </button>
+
+    @if (errorMessage) {
+      <div class="form-error" role="alert">
+        <p>{{ errorMessage }}</p>
+        @if (alternativaDisponible) {
+          <button type="button" class="text-button" (click)="cambiarModo('manual')">Probar sin IA <span aria-hidden="true">→</span></button>
+        }
+      </div>
+    }
+  </form>
+
+  <p class="form-footnote"><span class="footnote-mark">i</span>Los precios y horarios dependen de la información del catálogo local.</p>
+</aside>
