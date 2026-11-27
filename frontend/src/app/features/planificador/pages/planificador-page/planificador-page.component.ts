@@ -1,5 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { DatePipe } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiError, CampoFaltanteRuta, RespuestaRuta, SolicitudRuta } from '../../models/ruta.models';
@@ -9,7 +11,7 @@ import { RouteResultPanelComponent } from '../../ui/route-result-panel/route-res
 
 @Component({
   selector: 'app-planificador-page',
-  imports: [RouteRequestFormComponent, RouteResultPanelComponent],
+  imports: [FormsModule, DatePipe, RouteRequestFormComponent, RouteResultPanelComponent],
   templateUrl: './planificador-page.component.html',
   styleUrl: './planificador-page.component.scss',
 })
@@ -17,6 +19,165 @@ export class PlanificadorPageComponent implements OnInit {
   private readonly api = inject(RutaApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly sanitizer = inject(DomSanitizer);
+
+  protected readonly activeTab = signal<'inicio' | 'explorar' | 'rutas' | 'guardados' | 'perfil'>('inicio');
+  protected readonly lensOpen = signal(false);
+  protected readonly scanning = signal(false);
+  protected readonly scanError = signal<string | null>(null);
+  protected readonly scanResult = signal<any>(null);
+  protected readonly savedRoutes = signal<any[]>([]);
+  protected readonly voiceSupported = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+  protected readonly listening = signal(false);
+  protected readonly chatText = signal('');
+  protected readonly chatOpen = signal(false);
+  protected readonly selectedDepartment = signal('Cochabamba');
+  protected readonly savedRoute = signal(false);
+  protected readonly departamentos = [
+    { nombre: 'La Paz', region: 'Altiplano', image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=700&q=85' },
+    { nombre: 'Santa Cruz', region: 'Oriente', image: 'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?auto=format&fit=crop&w=700&q=85' },
+    { nombre: 'Cochabamba', region: 'Valle', image: '/assets/images/cochabamba-valley-hero.png' },
+    { nombre: 'Oruro', region: 'Altiplano', image: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=700&q=85' },
+    { nombre: 'Potosí', region: 'Altiplano', image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=700&q=85' },
+    { nombre: 'Chuquisaca', region: 'Valles', image: 'https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=700&q=85' },
+    { nombre: 'Tarija', region: 'Sur', image: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=700&q=85' },
+    { nombre: 'Beni', region: 'Amazonía', image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=700&q=85' },
+    { nombre: 'Pando', region: 'Amazonía', image: 'https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&w=700&q=85' },
+  ];
+
+  protected irA(tab: 'inicio' | 'explorar' | 'rutas' | 'guardados' | 'perfil'): void {
+    this.activeTab.set(tab);
+    this.lensOpen.set(false);
+    this.chatOpen.set(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  protected abrirLens(): void {
+    this.lensOpen.set(true);
+    this.activeTab.set('explorar');
+    this.scanError.set(null);
+    this.scanResult.set(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  protected async analizarImagen(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      this.scanError.set('Selecciona una imagen JPG, PNG o WebP.');
+      input.value = '';
+      return;
+    }
+    this.scanning.set(true);
+    this.scanError.set(null);
+    this.scanResult.set(null);
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 1400 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('No se pudo procesar la imagen.');
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(
+        (value) => value ? resolve(value) : reject(new Error('No se pudo comprimir la imagen.')),
+        'image/jpeg', 0.78,
+      ));
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('No se pudo leer la imagen.'));
+        reader.readAsDataURL(blob);
+      });
+      const imagenBase64 = dataUrl.split(',')[1] ?? '';
+      this.api.escanearPlato({ imagenBase64, mediaType: 'image/jpeg', idioma: 'es' })
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (response) => {
+            this.scanning.set(false);
+            if (response.ok) this.scanResult.set(response.datos);
+            else this.scanError.set(response.error || 'No se pudo reconocer el plato.');
+          },
+          error: () => {
+            this.scanning.set(false);
+            this.scanError.set('El escáner no está disponible. Comprueba que el backend y Claude estén conectados.');
+          },
+        });
+    } catch (error) {
+      this.scanning.set(false);
+      this.scanError.set(error instanceof Error ? error.message : 'No se pudo procesar la imagen.');
+    } finally {
+      input.value = '';
+    }
+  }
+
+  protected hablarTexto(texto: string): void {
+    if (!('speechSynthesis' in window)) {
+      this.scanError.set('La lectura por voz no está disponible en este navegador.');
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-BO';
+    utterance.rate = 0.94;
+    window.speechSynthesis.speak(utterance);
+  }
+
+  protected dictarChat(): void {
+    const Recognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!Recognition) return;
+    const recognition = new Recognition();
+    recognition.lang = 'es-BO';
+    recognition.interimResults = false;
+    recognition.onstart = () => this.listening.set(true);
+    recognition.onend = () => this.listening.set(false);
+    recognition.onerror = () => this.listening.set(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript;
+      if (transcript) this.chatText.set((this.chatText() + ' ' + transcript).trim());
+    };
+    recognition.start();
+  }
+
+  protected guardarRuta(): void {
+    const route = this.resultado();
+    if (!route?.ruta) return;
+    const item = { id: Date.now(), titulo: route.itinerario?.titulo || 'Mi ruta por Bolivia', departamento: this.selectedDepartment(), guardada: new Date().toISOString(), ruta: route };
+    const updated = [item, ...this.savedRoutes()].slice(0, 30);
+    this.savedRoutes.set(updated);
+    try { localStorage.setItem('bolivia-viva-saved-routes', JSON.stringify(updated)); } catch { /* almacenamiento no disponible */ }
+    this.savedRoute.set(true);
+  }
+
+  protected eliminarGuardada(id: number): void {
+    const updated = this.savedRoutes().filter((item) => item.id !== id);
+    this.savedRoutes.set(updated);
+    try { localStorage.setItem('bolivia-viva-saved-routes', JSON.stringify(updated)); } catch { /* almacenamiento no disponible */ }
+  }
+
+  protected abrirChat(): void {
+    this.chatOpen.set(true);
+    this.activeTab.set('rutas');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  protected enviarChat(): void {
+    const texto = this.chatText().trim();
+    if (!texto) return;
+    this.solicitarRuta({
+      modo: 'ia',
+      entrada: { texto, idioma: 'es', soloAbiertos: false },
+    });
+    this.chatOpen.set(false);
+    this.activeTab.set('rutas');
+  }
+
+  protected elegirDepartamento(nombre: string): void {
+    this.selectedDepartment.set(nombre);
+    this.irA('explorar');
+  }
 
   protected readonly ubicacionUsuario = signal<{ lat: number; lng: number } | null>(null);
   protected readonly errorUbicacion = signal<string | null>(null);
@@ -35,6 +196,7 @@ export class PlanificadorPageComponent implements OnInit {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         });
+        this.selectedDepartment.set(this.departamentoDesdeCoordenadas(position.coords.latitude, position.coords.longitude));
         this.buscandoUbicacion.set(false);
       },
       (error) => {
@@ -47,6 +209,14 @@ export class PlanificadorPageComponent implements OnInit {
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
     );
+  }
+
+  private departamentoDesdeCoordenadas(lat: number, lng: number): string {
+    if (lat > -11.5) return lng < -66 ? 'Pando' : 'Beni';
+    if (lat > -15.5) return lng < -67 ? 'La Paz' : 'Beni';
+    if (lat > -18.0) return lng < -67 ? 'La Paz' : lng < -64.5 ? 'Cochabamba' : 'Santa Cruz';
+    if (lat > -19.5) return lng < -66.5 ? 'Oruro' : lng < -64.5 ? 'Potosí' : 'Santa Cruz';
+    return lng < -66 ? 'Potosí' : lng < -64.5 ? 'Chuquisaca' : 'Tarija';
   }
 
   protected get mapEmbedUrl(): SafeResourceUrl {
@@ -117,6 +287,10 @@ export class PlanificadorPageComponent implements OnInit {
   protected readonly alternativaDisponible = signal(false);
 
   ngOnInit(): void {
+    try {
+      const stored = localStorage.getItem('bolivia-viva-saved-routes');
+      if (stored) this.savedRoutes.set(JSON.parse(stored));
+    } catch { this.savedRoutes.set([]); }
     this.api
       .salud()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -127,6 +301,7 @@ export class PlanificadorPageComponent implements OnInit {
   }
 
   protected solicitarRuta(solicitud: SolicitudRuta): void {
+    this.savedRoute.set(false);
     this.cargando.set(true);
     this.resultado.set(null);
     this.datosFaltantes.set([]);

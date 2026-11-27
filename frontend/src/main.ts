@@ -4,3 +4,9 @@ import { App } from './app/app';
 
 bootstrapApplication(App, appConfig)
   .catch((err) => console.error(err));
+
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !window.location.hostname.includes('localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((error) => console.warn('[PWA] No se pudo registrar el service worker:', error));
+  });
+}

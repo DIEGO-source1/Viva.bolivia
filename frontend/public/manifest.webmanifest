@@ -1,0 +1,25 @@
+{
+  "name": "BOLIVIA VIVA AI",
+  "short_name": "VIVA AI",
+  "description": "Un país, mil sabores, infinitas experiencias.",
+  "lang": "es-BO",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAF7F2",
+  "theme_color": "#1E4635",
+  "categories": [
+    "travel",
+    "food",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -14,6 +14,10 @@ export class RutaApiService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = '/api';
 
+  escanearPlato(entrada: { imagenBase64: string; mediaType: 'image/jpeg' | 'image/png' | 'image/webp'; idioma: 'es' | 'en' }): Observable<RespuestaApi<any>> {
+    return this.http.post<RespuestaApi<any>>(`${this.apiUrl}/escanear`, entrada);
+  }
+
   salud(): Observable<RespuestaApi<SaludApi>> {
     return this.http.get<RespuestaApi<SaludApi>>(`${this.apiUrl}/salud`);
   }

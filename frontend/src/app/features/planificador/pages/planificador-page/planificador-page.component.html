@@ -1,125 +1,161 @@
-<div class="app-shell" id="inicio">
-  <header class="topbar">
-    <a class="brand" href="#inicio" aria-label="Viva Bolivia, inicio">
-      <span class="brand-mark" aria-hidden="true">V</span>
-      <span class="brand-copy"><strong>Viva Bolivia</strong><small>Rutas locales</small></span>
+<div class="app-shell bolivia-app" id="inicio">
+  <header class="app-topbar">
+    <a class="app-brand" href="#inicio" (click)="irA('inicio')" aria-label="Bolivia Viva AI, inicio">
+      <span class="brand-symbol">V</span>
+      <span><strong>BOLIVIA VIVA <i>AI</i></strong><small>Un país, mil sabores</small></span>
     </a>
-
-    <div class="topbar-right">
-      <nav class="topbar-nav" aria-label="Navegación principal">
-        <a href="#planificador">Planifica</a>
-        <a href="#como-funciona">Cómo funciona</a>
-      </nav>
-      <div class="topbar-meta">
-        <span class="city-label"><span class="city-dot" aria-hidden="true"></span>Cochabamba</span>
-        <span class="api-status" [class.api-status--online]="apiDisponible() === true" [class.api-status--offline]="apiDisponible() === false">
-          <span class="status-dot" aria-hidden="true"></span>
-          {{ apiDisponible() === true ? 'Servicio disponible' : apiDisponible() === false ? 'Servicio sin conexión' : 'Conectando' }}
-        </span>
-      </div>
+    <div class="topbar-location">
+      <span class="location-pulse"></span>
+      <span>{{ selectedDepartment() }}, Bolivia</span>
+      <button type="button" (click)="solicitarUbicacion()" aria-label="Detectar ubicación">⌖</button>
     </div>
+    <button class="topbar-avatar" type="button" (click)="irA('perfil')" aria-label="Abrir perfil">A</button>
   </header>
 
-  <main class="page-content">
-    <section class="intro cinematic-hero" aria-labelledby="page-title">
-      <div class="cinematic-hero-backdrop" aria-hidden="true"></div>
-      <div class="cinematic-hero-grain" aria-hidden="true"></div>
-      <div class="cinematic-hero-inner">
-        <div class="cinematic-hero-copy">
-          <p class="eyebrow"><span class="eyebrow-line"></span>Bolivia · experiencias extraordinarias</p>
-          <h1 id="page-title">Wonders<br><em>of the Valley.</em></h1>
-          <p class="intro-text">Descubre Cochabamba a tu manera. Rutas locales, sabores auténticos y paisajes que merecen quedarse en la memoria.</p>
-          <a class="hero-cta" href="#planificador">Planifica tu viaje <span aria-hidden="true">↗</span></a>
+  <main class="mobile-content">
+    @if (activeTab() === 'inicio') {
+      <section class="voyage-home-hero">
+        <div class="voyage-hero-image" aria-hidden="true"></div><div class="voyage-hero-shade" aria-hidden="true"></div>
+        <div class="voyage-hero-topline"><span class="voyage-location"><i></i>{{ selectedDepartment() }}, Bolivia</span><span>UN PAÍS · NUEVE DEPARTAMENTOS</span></div>
+        <div class="voyage-hero-title"><p class="eyebrow">BOLIVIA VIVA AI PRESENTA</p><h1>Explora<br><em>Bolivia.</em></h1><p>Mil sabores, paisajes inmensos y experiencias que se quedan contigo.</p></div>
+        <button class="voyage-search" type="button" (click)="irA('explorar')"><span>⌕</span><span>¿Qué quieres descubrir hoy?</span><b>⌖</b></button>
+        <div class="voyage-hero-caption"><span>01 / 09</span><span>EL VIAJE COMIENZA AQUÍ</span></div>
+      </section>
+      <section class="voyage-category-row" aria-label="Categorías">
+        <button type="button" (click)="irA('explorar')"><i>♨</i><span>Gastronomía</span></button>
+        <button type="button" (click)="irA('explorar')"><i>⌁</i><span>Lugares</span></button>
+        <button type="button" (click)="abrirLens()"><i>◎</i><span>Experiencias</span></button>
+        <button type="button" (click)="irA('rutas')"><i>⌖</i><span>Rutas</span></button>
+        <button type="button" (click)="irA('perfil')"><i>◈</i><span>Cultura</span></button>
+        <button type="button" (click)="irA('explorar')"><i>✺</i><span>Eventos</span></button>
+      </section>
+      <section class="voyage-departments">
+        <div class="voyage-section-heading"><div><span class="eyebrow">NUESTRA TIERRA</span><h2>Explora los 9 departamentos</h2></div><button type="button" (click)="irA('explorar')">Ver todos ↗</button></div>
+        <div class="department-filter"><button type="button" class="selected" (click)="selectedDepartment.set('Bolivia')">Todos</button>
+          @for (d of departamentos.slice(0,4); track d.nombre) { <button type="button" [class.selected]="selectedDepartment() === d.nombre" (click)="selectedDepartment.set(d.nombre)">{{ d.nombre }}</button> }
+          <button type="button" (click)="irA('explorar')">•••</button>
         </div>
-        <div class="cinematic-hero-side">
-          <div class="destination-heading"><span>DESCUBRE EL VALLE</span><span>01 — 03</span></div>
-          <div class="destination-cards">
-            <a class="destination-card destination-card--mountain" href="#planificador">
-              <span class="destination-card-kicker">NATURALEZA · COCHABAMBA</span>
-              <strong>Cordillera<br>del Tunari</strong>
-              <span class="destination-card-link">Explorar experiencia ↗</span>
-            </a>
-            <a class="destination-card destination-card--city" href="#planificador">
-              <span class="destination-card-kicker">CULTURA · CIUDAD</span>
-              <strong>Historias<br>del valle</strong>
-              <span class="destination-card-link">Explorar experiencia ↗</span>
-            </a>
-            <a class="destination-card destination-card--flavor" href="#planificador">
-              <span class="destination-card-kicker">GASTRONOMÍA · LOCAL</span>
-              <strong>Sabores<br>de siempre</strong>
-              <span class="destination-card-link">Explorar experiencia ↗</span>
-            </a>
-          </div>
-          <p class="destination-footnote">Experiencias sugeridas a partir del catálogo local disponible.</p>
-        </div>
-      </div>
-      <div class="cinematic-hero-footer">
-        <span><i></i> COCHABAMBA · BOLIVIA</span>
-        <a href="#planificador">EMPIEZA A EXPLORAR ↓</a>
-      </div>
-    </section>
-
-    <section id="planificador" aria-labelledby="planner-title">
-      <div class="planner-intro">
-        <h2 id="planner-title">Diseña tu próxima salida</h2>
-        <p>Tu tiempo, tu presupuesto y tus ganas marcan el camino.</p>
-      </div>
-      <div class="planner-grid" aria-label="Planificador de rutas">
-        <app-route-request-form
-          [cargando]="cargando()"
-          [errorMessage]="errorMessage()"
-          [alternativaDisponible]="alternativaDisponible()"
-          [datosFaltantes]="datosFaltantes()"
-          (solicitud)="solicitarRuta($event)"
-          (usarFormularioManual)="cambiarAFormularioManual()"
-        />
-        <app-route-result-panel [resultado]="resultado()" [cargando]="cargando()" />
-      </div>
-    </section>
-
-    <section class="map-explorer" aria-labelledby="map-title">
-      <div class="map-copy">
-        <p class="eyebrow"><span class="eyebrow-line"></span>Muévete con confianza</p>
-        <h2 id="map-title">El siguiente lugar<br><em>está más cerca.</em></h2>
-        <p>Comparte tu ubicación solo cuando quieras. Te ayudaremos a situar el recorrido y abrir las indicaciones en Google Maps.</p>
-        <button class="location-button" type="button" (click)="solicitarUbicacion()" [disabled]="buscandoUbicacion()">
-          <span class="location-button-icon" aria-hidden="true">⌖</span>
-          {{ buscandoUbicacion() ? 'Buscando ubicación…' : ubicacionUsuario() ? 'Actualizar mi ubicación' : 'Usar mi ubicación' }}
-        </button>
-        @if (ubicacionUsuario(); as ubicacion) {
-          <p class="location-status location-status--ok">Ubicación compartida para esta sesión: {{ ubicacion.lat }}, {{ ubicacion.lng }}</p>
-        } @else {
-          <p class="location-status">Tu ubicación no se comparte hasta que pulses el botón y aceptes el permiso del navegador.</p>
-        }
-        @if (errorUbicacion()) { <p class="location-error" role="alert">{{ errorUbicacion() }}</p> }
-        <div class="map-actions">
-          <a [href]="googleMapsRouteUrl" target="_blank" rel="noopener noreferrer">Abrir recorrido completo en Google Maps <span>↗</span></a>
-          <a [href]="nearbyStayUrl" target="_blank" rel="noopener noreferrer">Buscar hospedajes cerca del destino <span>↗</span></a>
-        </div>
-        <div class="map-route-summary" aria-live="polite">
-          <span class="map-route-summary-label">TU MAPA</span>
-          <strong>{{ routeSummary }}</strong>
-          @if (routeStops.length) {
-            <ol class="map-stop-list">
-              @for (stop of routeStops; track stop.orden) {
-                <li><span>{{ stop.orden.toString().padStart(2, '0') }}</span><div><strong>{{ stop.nombre }}</strong><small>{{ stop.zona }}</small></div></li>
-              }
-            </ol>
-          } @else {
-            <p>Cuando generes una ruta, aquí aparecerán sus paradas en orden. El mapa se actualizará con los destinos de tu recorrido.</p>
+        <div class="voyage-destination-rail">
+          @for (departamento of departamentos; track departamento.nombre; let i = $index) {
+            <button class="voyage-destination-card" [class.destination-featured]="i === 0" [style.background-image]="'linear-gradient(0deg,rgba(2,18,24,.88),rgba(2,18,24,.02) 65%),url(' + departamento.image + ')'" type="button" (click)="elegirDepartamento(departamento.nombre)"><span class="destination-heart">♡</span><small>{{ departamento.region }}</small><strong>{{ departamento.nombre }}</strong></button>
           }
         </div>
-      </div>
-      <div class="map-frame-wrap">
-        <div class="map-frame-top"><span><i></i> MAPA DE EXPLORACIÓN</span><span>GOOGLE MAPS</span></div>
-        <iframe class="google-map-frame" title="Mapa de Cochabamba y ubicación seleccionada" [src]="mapEmbedUrl" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
-        <div class="map-frame-foot"><span>{{ routeSummary }}</span><span>↗</span></div>
-      </div>
-    </section>
+      </section>
+      <section class="voyage-experiences">
+        <div class="voyage-section-heading"><div><span class="eyebrow">HECHAS PARA RECORDAR</span><h2>Experiencias imperdibles</h2></div><button type="button" (click)="irA('explorar')">Ver más ↗</button></div>
+        <div class="voyage-experience-grid">
+          <button type="button" class="voyage-experience-card food" (click)="irA('explorar')"><span>GASTRONOMÍA</span><strong>Sabores<br>de Bolivia</strong></button>
+          <button type="button" class="voyage-experience-card adventure" (click)="irA('explorar')"><span>AVENTURA</span><strong>Andes<br>inolvidables</strong></button>
+          <button type="button" class="voyage-experience-card nature" (click)="irA('explorar')"><span>NATURALEZA</span><strong>Amazonía<br>viva</strong></button>
+        </div>
+      </section>
+      <section class="voyage-viva-banner"><div class="voyage-guide-avatar">V<i>✦</i></div><div><span class="eyebrow">TU GUÍA INTELIGENTE</span><h2>Pregunta a <em>VIVA AI</em></h2><p>Encuentra rutas, sabores y experiencias hechas para ti.</p></div><button type="button" (click)="abrirChat()">Hablar ahora ↗</button></section>
+      <section class="voyage-quick-tools"><button type="button" (click)="abrirLens()">◎ VIVA LENS <small>Reconoce platos y lugares</small></button><button type="button" (click)="irA('perfil')">◈ Pasaporte cultural <small>Descubre los nueve departamentos</small></button></section>
+    }
+    @if (activeTab() === 'explorar' && lensOpen()) {
+      <section class="lens-screen">
+        <button class="back-link" type="button" (click)="lensOpen.set(false)">← Volver a explorar</button>
+        <span class="eyebrow">VIVA LENS · INTELIGENCIA VISUAL</span>
+        <h1>Un sabor puede<br><em>contar una historia.</em></h1>
+        <p>Fotografía un plato típico boliviano. VIVA LENS lo comparará con el catálogo gastronómico disponible.</p>
+        <div class="lens-camera-panel">
+          <div class="lens-frame"><span class="lens-corner lens-corner-a"></span><span class="lens-corner lens-corner-b"></span><span class="lens-corner lens-corner-c"></span><span class="lens-corner lens-corner-d"></span><div class="lens-aperture">⌕</div><small>ENFOCA UN PLATO TÍPICO</small></div>
+          <label class="lens-upload"><input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" (change)="analizarImagen($event)"><span>◎</span> Abrir cámara o elegir fotografía</label>
+          @if (scanning()) { <div class="lens-progress"><span></span>Analizando imagen con VIVA AI…</div> }
+          @if (scanError()) { <p class="form-error" role="alert">{{ scanError() }}</p> }
+        </div>
+        @if (scanResult(); as result) {
+          <article class="lens-result">
+            @if (result.estado === 'reconocido' || result.estado === 'confirmar') {
+              <span class="eyebrow">RESULTADO DEL RECONOCIMIENTO</span><h2>{{ result.plato?.nombre || 'Plato identificado' }}</h2>
+              <p>{{ result.plato?.descripcion || result.mensaje }}</p>
+              <p class="lens-confidence">Confianza estimada: {{ (result.confianza * 100).toFixed(0) }}%</p>
+              @if (result.estado === 'confirmar') { <p class="lens-caution">{{ result.mensaje }} Revisa el resultado antes de compartirlo.</p> }
+              @if (result.plato?.lugares?.length) { <h3>Dónde encontrarlo</h3><p>Consulta los establecimientos asociados en el catálogo disponible.</p> }
+              <button type="button" class="secondary-action" (click)="hablarTexto(result.plato?.descripcion || result.mensaje || 'Resultado de VIVA Lens')">Escuchar descripción 🔊</button>
+            } @else { <h2>No logramos reconocerlo</h2><p>{{ result.mensaje }}</p> }
+          </article>
+        }
+        <p class="lens-privacy">La fotografía se envía al backend para analizarla. No se guarda en tu perfil mediante esta función.</p>
+      </section>
+    }
 
-    <footer class="page-footer" id="como-funciona">
-      <span>Viva Bolivia <span class="footer-dot">·</span> Descubre lo local</span>
-      <span>Confirma precios y horarios antes de salir.</span>
-    </footer>
+    @if (activeTab() === 'explorar' && !lensOpen()) {
+      <section class="subpage-heading"><span class="eyebrow">BOLIVIA TE SORPRENDE</span><h1>Explora los<br><em>nueve departamentos.</em></h1><p>Encuentra sabores, paisajes y culturas que hacen único a cada destino.</p></section>
+      <div class="department-grid department-grid-large">
+        @for (departamento of departamentos; track departamento.nombre) {
+          <button class="department-card" type="button" [style.background-image]="'linear-gradient(0deg,rgba(9,30,25,.82),rgba(9,30,25,.02)),url(' + departamento.image + ')'" (click)="selectedDepartment.set(departamento.nombre); irA('rutas')">
+            <span>{{ departamento.region }}</span><strong>{{ departamento.nombre }}</strong><i>Explorar ↗</i>
+          </button>
+        }
+      </div>
+      <section class="lens-promo explore-lens"><div><span class="eyebrow">VIVA LENS</span><h2>Reconoce sabores con tu cámara.</h2><p>Identifica platos del catálogo gastronómico y conoce sus ingredientes e historia.</p><button type="button" (click)="abrirLens()">Probar escáner ↗</button></div><div class="lens-orbit"><span>⌕</span><i>✦</i></div></section>
+      <div class="explore-note"><strong>Descubre con respeto.</strong><p>Las recomendaciones deben basarse en lugares del catálogo y datos verificados. Estamos preparando la expansión del catálogo nacional.</p></div>
+    }
+
+    @if (activeTab() === 'rutas') {
+      @if (chatOpen()) {
+        <section class="chat-screen">
+          <button class="back-link" type="button" (click)="chatOpen.set(false); irA('inicio')">← Volver</button>
+          <div class="chat-guide-avatar">V</div>
+          <span class="eyebrow">VIVA AI · TU GUÍA BOLIVIANA</span>
+          <h1>¿A dónde<br><em>vamos hoy?</em></h1>
+          <p>Cuéntame dónde estás, cuánto tiempo tienes y qué presupuesto quieres cuidar. Buscaré opciones en el catálogo disponible.</p>
+          <div class="chat-suggestion" (click)="chatText.set('Estoy en ' + selectedDepartment() + ', tengo Bs 60 y 2 horas. Quiero probar comida típica y conocer un lugar bonito.')">“Tengo Bs 60 y 2 horas. ¿Qué puedo hacer?”</div>
+          <textarea [ngModel]="chatText()" (ngModelChange)="chatText.set($event)" rows="4" placeholder="Ej. Tengo Bs 60 y 2 horas en La Paz..."></textarea>
+          <div class="chat-voice-tools">
+            @if (voiceSupported) { <button type="button" (click)="dictarChat()">{{ listening() ? 'Escuchando…' : '🎙 Dictar por voz' }}</button> }
+            <button type="button" (click)="hablarTexto('Hola, soy VIVA AI. Cuéntame qué quieres descubrir en Bolivia.')">🔊 Escuchar a VIVA</button>
+          </div>
+          <button class="primary-action" type="button" [disabled]="!chatText().trim() || cargando()" (click)="enviarChat()">{{ cargando() ? 'Preparando tu experiencia…' : 'Crear experiencia con VIVA AI ↗' }}</button>
+          <p class="chat-disclaimer">VIVA AI solo puede recomendar destinos disponibles en el catálogo conectado. Requiere conexión con el servicio de IA.</p>
+        </section>
+      } @else {
+        <section class="subpage-heading"><span class="eyebrow">PLANIFICADOR INTELIGENTE</span><h1>Diseña tu<br><em>próxima aventura.</em></h1><p>Elige tu experiencia o cuéntasela a VIVA AI para recibir una ruta personalizada.</p><button class="secondary-action" type="button" (click)="abrirChat()">✦ Preguntar a VIVA AI</button></section>
+        <div class="planner-grid" aria-label="Planificador de rutas">
+          <app-route-request-form [cargando]="cargando()" [errorMessage]="errorMessage()" [alternativaDisponible]="alternativaDisponible()" [datosFaltantes]="datosFaltantes()" (solicitud)="solicitarRuta($event)" (usarFormularioManual)="cambiarAFormularioManual()" />
+          <app-route-result-panel [resultado]="resultado()" [cargando]="cargando()" />
+        </div>
+        @if (resultado()?.estado === 'ok') {
+          <button class="save-route-action" type="button" (click)="guardarRuta()">{{ savedRoute() ? '✓ Ruta guardada' : '♡ Guardar esta ruta' }}</button>
+        }
+        <section class="map-explorer" aria-labelledby="map-title">
+          <div class="map-copy"><p class="eyebrow">MUÉVETE CON CONFIANZA</p><h2 id="map-title">Tu ruta, <em>en el mapa.</em></h2><p>Comparte tu ubicación solo cuando quieras para situar tu recorrido.</p>
+            <button class="location-button" type="button" (click)="solicitarUbicacion()" [disabled]="buscandoUbicacion()">{{ buscandoUbicacion() ? 'Buscando…' : ubicacionUsuario() ? 'Actualizar ubicación' : 'Usar mi ubicación' }}</button>
+            @if (errorUbicacion()) { <p class="location-error">{{ errorUbicacion() }}</p> }
+            <div class="map-actions"><a [href]="googleMapsRouteUrl" target="_blank" rel="noopener noreferrer">Abrir recorrido en Google Maps ↗</a><a [href]="nearbyStayUrl" target="_blank" rel="noopener noreferrer">Buscar hospedajes ↗</a></div>
+          </div>
+          <div class="map-frame-wrap"><div class="map-frame-top">GOOGLE MAPS · {{ routeSummary }}</div><iframe class="google-map-frame" title="Mapa de Bolivia y ruta seleccionada" [src]="mapEmbedUrl" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div>
+        </section>
+      }
+    }
+
+    @if (activeTab() === 'guardados') {
+      <section class="subpage-heading"><span class="eyebrow">TU COLECCIÓN PERSONAL</span><h1>Experiencias<br><em>guardadas.</em></h1><p>Guarda rutas y lugares para volver a ellos cuando quieras.</p></section>
+      @if (savedRoutes().length) {
+        <div class="saved-route-list">
+          @for (item of savedRoutes(); track item.id) {
+            <article class="saved-route-item"><span class="saved-icon">♡</span><div><small>{{ item.departamento }} · {{ item.guardada | date:'mediumDate' }}</small><h2>{{ item.titulo }}</h2><p>{{ item.ruta.ruta.paradas.length }} paradas · Bs {{ item.ruta.ruta.costo_min }}–{{ item.ruta.ruta.costo_max }}</p></div><button type="button" (click)="eliminarGuardada(item.id)" aria-label="Eliminar ruta guardada">×</button></article>
+          }
+        </div>
+      } @else {
+        <div class="saved-card"><span class="saved-icon">♡</span><h2>Aún no guardaste rutas</h2><p>Cuando encuentres un recorrido que te guste, podrás guardarlo en este dispositivo.</p><button class="secondary-action" type="button" (click)="irA('explorar')">Explorar Bolivia ↗</button></div>
+      }
+    }
+
+    @if (activeTab() === 'perfil') {
+      <section class="subpage-heading"><span class="eyebrow">TU PASAPORTE CULTURAL</span><h1>Viajero de<br><em>corazón.</em></h1><p>Tu historia por los nueve departamentos empieza con cada experiencia.</p></section>
+      <div class="passport-card"><div class="passport-top"><span>BOLIVIA VIVA AI</span><span>01 / 09</span></div><div class="passport-seal">V</div><h2>Pasaporte cultural</h2><p>Explora destinos y sabores para desbloquear tus próximas insignias.</p><div class="passport-progress"><span></span></div><small>Progreso disponible cuando se habilite el registro de visitas.</small></div>
+      <div class="profile-options"><div><span>✧</span><strong>Medallas culturales</strong><small>Próximamente: insignias por visitas y experiencias confirmadas</small></div><div><span>◉</span><strong>Voces de Bolivia</strong><small>Relatos de comerciantes, guías y tradiciones locales</small></div><div><span>⌖</span><strong>Preferencias de viaje</strong><small>{{ selectedDepartment() }} como destino actual</small></div></div>
+      <section class="voices-card"><span class="eyebrow">VOCES DE BOLIVIA</span><h2>Las historias también<br><em>son parte del viaje.</em></h2><p>Un espacio para escuchar relatos de mercados, cocinas familiares, guías locales y tradiciones de los nueve departamentos.</p><button type="button" (click)="hablarTexto('Bienvenido a Voces de Bolivia. Muy pronto podrás escuchar relatos de comerciantes, guías y comunidades de los nueve departamentos.')">Escuchar presentación 🔊</button><small>Audio de presentación. Los testimonios reales se incorporarán con autorización de sus protagonistas.</small></section>
+    }
   </main>
+
+  <nav class="bottom-nav" aria-label="Navegación inferior">
+    <button type="button" [class.active]="activeTab() === 'inicio'" (click)="irA('inicio')"><span>⌂</span><small>Inicio</small></button>
+    <button type="button" [class.active]="activeTab() === 'explorar'" (click)="irA('explorar')"><span>⌕</span><small>Explorar</small></button>
+    <button type="button" class="nav-create" [class.active]="activeTab() === 'rutas'" (click)="irA('rutas')"><span>✦</span><small>Rutas</small></button>
+    <button type="button" [class.active]="activeTab() === 'guardados'" (click)="irA('guardados')"><span>♡</span><small>Guardados</small></button>
+    <button type="button" [class.active]="activeTab() === 'perfil'" (click)="irA('perfil')"><span>◎</span><small>Perfil</small></button>
+  </nav>
 </div>
