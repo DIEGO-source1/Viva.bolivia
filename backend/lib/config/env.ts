@@ -22,6 +22,10 @@ export const env = {
     return process.env.IA_MODELO_VISION || this.iaModelo;
   },
   get corsOrigin() {
-    return process.env.CORS_ORIGIN || '*';
+    const configured = process.env.CORS_ORIGIN;
+    if (process.env.VERCEL && !configured) {
+      throw new Error('Falta CORS_ORIGIN: configura el dominio exacto del frontend en Vercel');
+    }
+    return configured || 'http://localhost:4200';
   },
 };

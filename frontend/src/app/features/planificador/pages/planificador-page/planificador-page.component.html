@@ -5,39 +5,120 @@
       <span class="brand-copy"><strong>Viva Bolivia</strong><small>Rutas locales</small></span>
     </a>
 
-    <div class="topbar-meta">
-      <span class="city-label"><span class="city-dot" aria-hidden="true"></span>Cochabamba</span>
-      <span class="api-status" [class.api-status--online]="apiDisponible() === true" [class.api-status--offline]="apiDisponible() === false">
-        <span class="status-dot" aria-hidden="true"></span>
-        {{ apiDisponible() === true ? 'Servicio disponible' : apiDisponible() === false ? 'Servicio sin conexión' : 'Conectando' }}
-      </span>
+    <div class="topbar-right">
+      <nav class="topbar-nav" aria-label="Navegación principal">
+        <a href="#planificador">Planifica</a>
+        <a href="#como-funciona">Cómo funciona</a>
+      </nav>
+      <div class="topbar-meta">
+        <span class="city-label"><span class="city-dot" aria-hidden="true"></span>Cochabamba</span>
+        <span class="api-status" [class.api-status--online]="apiDisponible() === true" [class.api-status--offline]="apiDisponible() === false">
+          <span class="status-dot" aria-hidden="true"></span>
+          {{ apiDisponible() === true ? 'Servicio disponible' : apiDisponible() === false ? 'Servicio sin conexión' : 'Conectando' }}
+        </span>
+      </div>
     </div>
   </header>
 
   <main class="page-content">
-    <section class="intro" aria-labelledby="page-title">
-      <div class="intro-copy">
-        <p class="eyebrow"><span class="eyebrow-line"></span>Turismo y gastronomía · Cochabamba, Bolivia</p>
-        <h1 id="page-title">Cochabamba se disfruta <em>a tu ritmo.</em></h1>
-        <p class="intro-text">Arma un recorrido local con el tiempo que tienes y el presupuesto que quieres cuidar.</p>
+    <section class="intro cinematic-hero" aria-labelledby="page-title">
+      <div class="cinematic-hero-backdrop" aria-hidden="true"></div>
+      <div class="cinematic-hero-grain" aria-hidden="true"></div>
+      <div class="cinematic-hero-inner">
+        <div class="cinematic-hero-copy">
+          <p class="eyebrow"><span class="eyebrow-line"></span>Bolivia · experiencias extraordinarias</p>
+          <h1 id="page-title">Wonders<br><em>of the Valley.</em></h1>
+          <p class="intro-text">Descubre Cochabamba a tu manera. Rutas locales, sabores auténticos y paisajes que merecen quedarse en la memoria.</p>
+          <a class="hero-cta" href="#planificador">Planifica tu viaje <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="cinematic-hero-side">
+          <div class="destination-heading"><span>DESCUBRE EL VALLE</span><span>01 — 03</span></div>
+          <div class="destination-cards">
+            <a class="destination-card destination-card--mountain" href="#planificador">
+              <span class="destination-card-kicker">NATURALEZA · COCHABAMBA</span>
+              <strong>Cordillera<br>del Tunari</strong>
+              <span class="destination-card-link">Explorar experiencia ↗</span>
+            </a>
+            <a class="destination-card destination-card--city" href="#planificador">
+              <span class="destination-card-kicker">CULTURA · CIUDAD</span>
+              <strong>Historias<br>del valle</strong>
+              <span class="destination-card-link">Explorar experiencia ↗</span>
+            </a>
+            <a class="destination-card destination-card--flavor" href="#planificador">
+              <span class="destination-card-kicker">GASTRONOMÍA · LOCAL</span>
+              <strong>Sabores<br>de siempre</strong>
+              <span class="destination-card-link">Explorar experiencia ↗</span>
+            </a>
+          </div>
+          <p class="destination-footnote">Experiencias sugeridas a partir del catálogo local disponible.</p>
+        </div>
       </div>
-      <p class="intro-note"><span class="note-index">01</span><span>Una salida hecha a tu medida, con lugares del catálogo local.</span></p>
+      <div class="cinematic-hero-footer">
+        <span><i></i> COCHABAMBA · BOLIVIA</span>
+        <a href="#planificador">EMPIEZA A EXPLORAR ↓</a>
+      </div>
     </section>
 
-    <section class="planner-grid" aria-label="Planificador de rutas">
-      <app-route-request-form
-        [cargando]="cargando()"
-        [errorMessage]="errorMessage()"
-        [alternativaDisponible]="alternativaDisponible()"
-        [datosFaltantes]="datosFaltantes()"
-        (solicitud)="solicitarRuta($event)"
-        (usarFormularioManual)="cambiarAFormularioManual()"
-      />
-      <app-route-result-panel [resultado]="resultado()" [cargando]="cargando()" />
+    <section id="planificador" aria-labelledby="planner-title">
+      <div class="planner-intro">
+        <h2 id="planner-title">Diseña tu próxima salida</h2>
+        <p>Tu tiempo, tu presupuesto y tus ganas marcan el camino.</p>
+      </div>
+      <div class="planner-grid" aria-label="Planificador de rutas">
+        <app-route-request-form
+          [cargando]="cargando()"
+          [errorMessage]="errorMessage()"
+          [alternativaDisponible]="alternativaDisponible()"
+          [datosFaltantes]="datosFaltantes()"
+          (solicitud)="solicitarRuta($event)"
+          (usarFormularioManual)="cambiarAFormularioManual()"
+        />
+        <app-route-result-panel [resultado]="resultado()" [cargando]="cargando()" />
+      </div>
     </section>
 
-    <footer class="page-footer">
-      <span>Viva Bolivia <span class="footer-dot">·</span> Cochabamba</span>
+    <section class="map-explorer" aria-labelledby="map-title">
+      <div class="map-copy">
+        <p class="eyebrow"><span class="eyebrow-line"></span>Muévete con confianza</p>
+        <h2 id="map-title">El siguiente lugar<br><em>está más cerca.</em></h2>
+        <p>Comparte tu ubicación solo cuando quieras. Te ayudaremos a situar el recorrido y abrir las indicaciones en Google Maps.</p>
+        <button class="location-button" type="button" (click)="solicitarUbicacion()" [disabled]="buscandoUbicacion()">
+          <span class="location-button-icon" aria-hidden="true">⌖</span>
+          {{ buscandoUbicacion() ? 'Buscando ubicación…' : ubicacionUsuario() ? 'Actualizar mi ubicación' : 'Usar mi ubicación' }}
+        </button>
+        @if (ubicacionUsuario(); as ubicacion) {
+          <p class="location-status location-status--ok">Ubicación compartida para esta sesión: {{ ubicacion.lat }}, {{ ubicacion.lng }}</p>
+        } @else {
+          <p class="location-status">Tu ubicación no se comparte hasta que pulses el botón y aceptes el permiso del navegador.</p>
+        }
+        @if (errorUbicacion()) { <p class="location-error" role="alert">{{ errorUbicacion() }}</p> }
+        <div class="map-actions">
+          <a [href]="googleMapsRouteUrl" target="_blank" rel="noopener noreferrer">Abrir recorrido completo en Google Maps <span>↗</span></a>
+          <a [href]="nearbyStayUrl" target="_blank" rel="noopener noreferrer">Buscar hospedajes cerca del destino <span>↗</span></a>
+        </div>
+        <div class="map-route-summary" aria-live="polite">
+          <span class="map-route-summary-label">TU MAPA</span>
+          <strong>{{ routeSummary }}</strong>
+          @if (routeStops.length) {
+            <ol class="map-stop-list">
+              @for (stop of routeStops; track stop.orden) {
+                <li><span>{{ stop.orden.toString().padStart(2, '0') }}</span><div><strong>{{ stop.nombre }}</strong><small>{{ stop.zona }}</small></div></li>
+              }
+            </ol>
+          } @else {
+            <p>Cuando generes una ruta, aquí aparecerán sus paradas en orden. El mapa se actualizará con los destinos de tu recorrido.</p>
+          }
+        </div>
+      </div>
+      <div class="map-frame-wrap">
+        <div class="map-frame-top"><span><i></i> MAPA DE EXPLORACIÓN</span><span>GOOGLE MAPS</span></div>
+        <iframe class="google-map-frame" title="Mapa de Cochabamba y ubicación seleccionada" [src]="mapEmbedUrl" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+        <div class="map-frame-foot"><span>{{ routeSummary }}</span><span>↗</span></div>
+      </div>
+    </section>
+
+    <footer class="page-footer" id="como-funciona">
+      <span>Viva Bolivia <span class="footer-dot">·</span> Descubre lo local</span>
       <span>Confirma precios y horarios antes de salir.</span>
     </footer>
   </main>
