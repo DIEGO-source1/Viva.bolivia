@@ -7,7 +7,7 @@
 **Stack:**
 - **Neon:** Postgres con búsqueda de texto en español.
 - **Vercel Functions:** Node y TypeScript.
-- **Claude:** el modelo de IA.
+- **Gemini:** el modelo de IA.
 
 ---
 
@@ -38,7 +38,7 @@ lib/
   http/                    handler, respuestas, validación de entradas (zod)
   db/cliente.ts            conexión a Neon (SQL parametrizado)
   dominio/                 planificador, distancias, validadores, plantilla (SIN IA)
-  ia/                      cliente de Claude, prompts, esquemas, tareas
+  ia/                      cliente de Gemini, prompts, esquemas, tareas
   repositorios/            consultas SQL
   servicios/               orquestan el flujo (ruta, escáner)
 db/
@@ -81,7 +81,7 @@ git push -u origin main
 ### 4. Desplegar en Vercel
 1. En **vercel.com**, ve a **Add New → Project** e importa el repo `practica-backend`.
 2. En **Framework Preset**, elige **Other**. No cambies Build ni Output.
-3. En **Environment Variables**, agrega `DATABASE_URL` (la de Neon) e `IA_API_KEY` (la de Anthropic, `sk-ant-...`).
+3. En **Environment Variables**, agrega `DATABASE_URL` (la de Neon) e `GEMINI_API_KEY` (la de Google AI Studio, `sk-ant-...`).
 4. Toca **Deploy**. Cuando termine, tendrás una URL como `https://practica-backend.vercel.app`.
 
 > Si cambias una variable de entorno después, haz **Redeploy** para que se aplique.
@@ -123,7 +123,7 @@ Todas tienen la forma `{ ok: true, datos }` o `{ ok: false, error, detalle }`.
 |---|---|
 | `/api/salud` → 500 `Falta la variable de entorno DATABASE_URL` | No agregaste la variable en Vercel o no hiciste Redeploy |
 | `/api/salud` → error `relation "lugares" does not exist` | No ejecutaste los SQL en Neon, o lo hiciste en otra base o rama |
-| `/api/ruta` → 503 | `IA_API_KEY` incorrecta, sin crédito, o nombre de modelo inválido. Revisa los **Logs** del deploy en Vercel |
+| `/api/ruta` → 503 | `GEMINI_API_KEY` incorrecta, sin crédito, o nombre de modelo inválido. Revisa los **Logs** del deploy en Vercel |
 | 404 en `/api/ruta` | La URL debe incluir `/api/` |
 | `sin_resultados` siempre | El presupuesto es muy bajo para los precios de ejemplo |
 
@@ -152,7 +152,7 @@ Todas tienen la forma `{ ok: true, datos }` o `{ ok: false, error, detalle }`.
 ## Seguridad para una demo pública
 
 Los endpoints son públicos. Para no llevarte sorpresas de costo:
-- pon un **límite de gasto** en console.anthropic.com;
+- pon un **límite de gasto** en Google AI Studio;
 - cuando tengas la URL de tu Angular, configura `CORS_ORIGIN` con ella.
 
 ## Datos
@@ -162,3 +162,7 @@ Los endpoints son públicos. Para no llevarte sorpresas de costo:
 - llena `fuente` y `fecha_verificacion`;
 - marca `verificado = true`;
 - agrega `etiquetas` con platos y palabras clave, que mejoran la búsqueda.
+
+
+## Proveedor de IA: Gemini
+El backend usa Gemini Developer API mediante `generateContent` con salida JSON estructurada (`responseMimeType: application/json` y `responseSchema`). El mismo adaptador procesa texto e imágenes para el escáner. El modelo por defecto es `gemini-2.5-flash-lite`; el acceso gratuito está sujeto a cuotas, disponibilidad y condiciones de Google. En el nivel gratuito, Google indica que el contenido puede utilizarse para mejorar sus productos; no envíes datos sensibles.

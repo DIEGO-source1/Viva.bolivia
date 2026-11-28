@@ -2,7 +2,7 @@
   "name": "ruta-cochabamba-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Backend de práctica: rutas gastronómicas en Cochabamba (Neon + Vercel + Claude)",
+  "description": "Backend de turismo gastronómico boliviano (Neon + Vercel + Gemini)",
   "scripts": {
     "test": "tsx --test tests/planificador.test.ts",
     "typecheck": "tsc --noEmit",

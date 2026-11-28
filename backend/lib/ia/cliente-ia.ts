@@ -1,11 +1,8 @@
 import { env } from '../config/env';
 
-// Cliente mínimo para la API de Claude (Anthropic) usando "tool use"
-// para forzar respuestas en JSON. Para cambiar de proveedor
-// (Gemini, OpenAI...) solo se reescribe este archivo.
-
-const URL_API = 'https://api.anthropic.com/v1/messages';
-const VERSION_API = '2023-06-01';
+// Adaptador REST para Gemini Developer API.
+// Mantiene la interfaz Herramienta usada por las tareas existentes,
+// convirtiendo input_schema en responseSchema JSON de Gemini.
 
 export interface Herramienta {
   name: string;
@@ -38,73 +35,132 @@ interface OpcionesLlamada {
   timeoutMs?: number;
 }
 
+function convertirEsquema(esquema: Record<string, unknown>): Record<string, unknown> {
+  const properties = (esquema.properties ?? {}) as Record<string, Record<string, unknown>>;
+  const converted: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(properties)) {
+    converted[key] = convertirPropiedad(value);
+  }
+  return {
+    type: 'OBJECT',
+    properties: converted,
+    required: Array.isArray(esquema.required) ? esquema.required : [],
+  };
+}
+
+function convertirPropiedad(prop: Record<string, unknown>): Record<string, unknown> {
+  const rawType = prop.type;
+  let type = Array.isArray(rawType) ? rawType.find((t) => t !== 'null') : rawType;
+  const nullable = Array.isArray(rawType) && rawType.includes('null');
+  const map: Record<string, string> = {
+    object: 'OBJECT', array: 'ARRAY', string: 'STRING',
+    number: 'NUMBER', integer: 'INTEGER', boolean: 'BOOLEAN',
+  };
+  const result: Record<string, unknown> = {};
+  if (typeof type === 'string' && map[type]) result.type = map[type];
+  if (nullable) result.nullable = true;
+  if (Array.isArray(prop.enum)) result.enum = prop.enum;
+  if (typeof prop.description === 'string') result.description = prop.description;
+  if (prop.items && typeof prop.items === 'object') {
+    result.items = convertirPropiedad(prop.items as Record<string, unknown>);
+  }
+  if (prop.properties && typeof prop.properties === 'object') {
+    const nested = prop.properties as Record<string, Record<string, unknown>>;
+    const nestedProps: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(nested)) nestedProps[key] = convertirPropiedad(value);
+    result.properties = nestedProps;
+    result.required = Array.isArray(prop.required) ? prop.required : [];
+  }
+  if (typeof prop.minimum === 'number') result.minimum = prop.minimum;
+  if (typeof prop.maximum === 'number') result.maximum = prop.maximum;
+  return result;
+}
+
 /**
- * Llama al modelo obligándolo a usar una herramienta (respuesta JSON).
- * - Timeout para que la app no se quede colgada.
- * - 1 reintento ante errores temporales (429, 5xx, red).
+ * Gemini structured output (JSON schema) con soporte texto + imagen.
+ * Reintenta una vez ante 429, 5xx o fallos temporales de red.
  */
 export async function llamarHerramienta(op: OpcionesLlamada): Promise<ResultadoIA> {
-  const cuerpo = {
-    model: op.modelo ?? env.iaModelo,
-    max_tokens: op.maxTokens ?? 1024,
-    system: op.sistema,
-    tools: [op.herramienta],
-    tool_choice: { type: 'tool', name: op.herramienta.name },
-    messages: [{ role: 'user', content: op.contenido }],
+  const model = op.modelo ?? env.iaModelo;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const parts = op.contenido.map((block) => {
+    if (block.type === 'text') return { text: block.text };
+    return {
+      inlineData: {
+        mimeType: block.source.media_type,
+        data: block.source.data,
+      },
+    };
+  });
+
+  const body = {
+    systemInstruction: { parts: [{ text: op.sistema }] },
+    contents: [{ role: 'user', parts }],
+    generationConfig: {
+      maxOutputTokens: op.maxTokens ?? 1024,
+      responseMimeType: 'application/json',
+      responseSchema: convertirEsquema(op.herramienta.input_schema),
+      temperature: 0.2,
+    },
   };
 
-  const intentos = 2;
-  for (let intento = 1; intento <= intentos; intento++) {
+  for (let intento = 1; intento <= 2; intento++) {
     const control = new AbortController();
     const temporizador = setTimeout(() => control.abort(), op.timeoutMs ?? 20000);
-
     try {
-      const resp = await fetch(URL_API, {
+      const resp = await fetch(url, {
         method: 'POST',
         signal: control.signal,
         headers: {
           'content-type': 'application/json',
-          'x-api-key': env.iaApiKey,
-          'anthropic-version': VERSION_API,
+          'x-goog-api-key': env.geminiApiKey,
         },
-        body: JSON.stringify(cuerpo),
+        body: JSON.stringify(body),
       });
 
-      const temporal = resp.status === 429 || resp.status >= 500;
-      if (temporal && intento < intentos) {
-        await esperar(800 * intento);
+      if ((resp.status === 429 || resp.status >= 500) && intento < 2) {
+        await esperar(900 * intento);
         continue;
       }
       if (!resp.ok) {
         const detalle = await resp.text();
-        throw new ErrorIA(`El modelo respondió ${resp.status}: ${detalle.slice(0, 300)}`);
+        throw new ErrorIA(`Gemini respondió ${resp.status}: ${detalle.slice(0, 300)}`);
       }
 
       const json = await resp.json();
-      const bloque = (json.content ?? []).find((b: { type: string }) => b.type === 'tool_use');
-      if (!bloque) throw new ErrorIA('El modelo no devolvió la herramienta');
+      const texto = json.candidates?.[0]?.content?.parts
+        ?.map((part: { text?: string }) => part.text ?? '')
+        .join('')
+        .trim();
+      if (!texto) throw new ErrorIA('Gemini no devolvió contenido JSON');
+      let datos: unknown;
+      try {
+        datos = JSON.parse(texto);
+      } catch {
+        throw new ErrorIA('Gemini devolvió una respuesta JSON inválida');
+      }
 
       return {
-        datos: bloque.input,
+        datos,
         tokens: {
-          entrada: json.usage?.input_tokens ?? 0,
-          salida: json.usage?.output_tokens ?? 0,
+          entrada: json.usageMetadata?.promptTokenCount ?? 0,
+          salida: json.usageMetadata?.candidatesTokenCount ?? 0,
         },
       };
-    } catch (e) {
-      if (e instanceof ErrorIA) throw e;
-      if (intento < intentos) {
-        await esperar(800 * intento);
+    } catch (error) {
+      if (error instanceof ErrorIA) throw error;
+      if (intento < 2) {
+        await esperar(900 * intento);
         continue;
       }
-      throw new ErrorIA(`Fallo de red o tiempo agotado: ${(e as Error).message}`);
+      throw new ErrorIA(`Fallo de red o tiempo agotado: ${(error as Error).message}`);
     } finally {
       clearTimeout(temporizador);
     }
   }
-  throw new ErrorIA('Sin respuesta del modelo');
+  throw new ErrorIA('Gemini no respondió después de los reintentos');
 }
 
-function esperar(ms: number) {
-  return new Promise((resolver) => setTimeout(resolver, ms));
+function esperar(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
