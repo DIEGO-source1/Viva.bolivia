@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "evaluar": "tsx tests/evaluar.mts",
     "dev": "tsx watch --env-file=.env servidor-local.ts",
-    "demo": "tsx watch servidor-local.ts --demo"
+    "demo": "tsx watch servidor-local.ts --demo",
+    "admin:create": "node --env-file=.env --import tsx scripts/crear-admin.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
