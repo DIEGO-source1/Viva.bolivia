@@ -9,7 +9,8 @@
     "evaluar": "tsx tests/evaluar.mts",
     "dev": "tsx watch --env-file=.env servidor-local.ts",
     "demo": "tsx watch servidor-local.ts --demo",
-    "admin:create": "node --env-file=.env --import tsx scripts/crear-admin.ts"
+    "admin:create": "node --env-file=.env --import tsx scripts/crear-admin.ts",
+    "admin:reset-password": "node --env-file=.env --import tsx scripts/restablecer-admin.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
