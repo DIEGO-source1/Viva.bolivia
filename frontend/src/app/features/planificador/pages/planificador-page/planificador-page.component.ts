@@ -1,4 +1,4 @@
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpClient } from '@angular/common/http';
 import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
@@ -17,10 +17,23 @@ import { RouteResultPanelComponent } from '../../ui/route-result-panel/route-res
 })
 export class PlanificadorPageComponent implements OnInit {
   private readonly api = inject(RutaApiService);
+  private readonly http = inject(HttpClient);
   private readonly destroyRef = inject(DestroyRef);
   private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly activeTab = signal<'inicio' | 'explorar' | 'rutas' | 'guardados' | 'perfil'>('inicio');
+  protected readonly authMode = signal<'login' | 'registro' | null>(null);
+  protected readonly authEmail = signal('');
+  protected readonly authNombre = signal('');
+  protected readonly authPassword = signal('');
+  protected readonly authError = signal<string | null>(null);
+  protected readonly authBusy = signal(false);
+  protected readonly currentUser = signal<{id:string;email:string;nombre:string;rol:'admin'|'visitante'} | null>(null);
+  protected readonly adminOpen = signal(false);
+  protected readonly adminNombreLugar = signal('');
+  protected readonly adminDepartamento = signal('Cochabamba');
+  protected readonly adminMensaje = signal<string | null>(null);
+
   protected readonly lensOpen = signal(false);
   protected readonly scanning = signal(false);
   protected readonly scanError = signal<string | null>(null);
@@ -43,6 +56,69 @@ export class PlanificadorPageComponent implements OnInit {
     { nombre: 'Beni', region: 'Amazonía', image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=700&q=85' },
     { nombre: 'Pando', region: 'Amazonía', image: 'https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&w=700&q=85' },
   ];
+
+  protected abrirAuth(mode: 'login' | 'registro'): void {
+    this.authMode.set(mode); this.authError.set(null); this.authPassword.set('');
+  }
+
+  protected cerrarAuth(): void { this.authMode.set(null); this.authError.set(null); }
+
+  protected enviarAuth(): void {
+    this.authBusy.set(true); this.authError.set(null);
+    const endpoint = this.authMode() === 'registro' ? '/api/auth/registro' : '/api/auth/login';
+    const body = this.authMode() === 'registro'
+      ? { email: this.authEmail(), nombre: this.authNombre(), password: this.authPassword() }
+      : { email: this.authEmail(), password: this.authPassword() };
+    this.http.post<any>(endpoint, body).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        this.authBusy.set(false);
+        if (!r?.ok || !r.datos?.token) { this.authError.set(r?.error || 'No se pudo iniciar sesión.'); return; }
+        try { localStorage.setItem('bvia-session-token', r.datos.token); } catch {}
+        this.currentUser.set(r.datos.usuario); this.authMode.set(null); this.authPassword.set('');
+        this.irA('perfil');
+      },
+      error: (e: HttpErrorResponse) => { this.authBusy.set(false); this.authError.set(e.error?.error || 'No se pudo conectar con el servidor.'); }
+    });
+  }
+
+  protected cerrarSesion(): void {
+    const token = this.tokenSesion();
+    this.http.post('/api/auth/logout', {}, { headers: { Authorization: `Bearer ${token}` } }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      complete: () => { try { localStorage.removeItem('bvia-session-token'); } catch {} this.currentUser.set(null); this.adminOpen.set(false); },
+      error: () => { try { localStorage.removeItem('bvia-session-token'); } catch {} this.currentUser.set(null); this.adminOpen.set(false); }
+    });
+  }
+
+  protected tokenSesion(): string {
+    try { return localStorage.getItem('bvia-session-token') || ''; } catch { return ''; }
+  }
+
+  protected cargarSesion(): void {
+    const token = this.tokenSesion();
+    if (!token) return;
+    this.http.get<any>('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: r => { if (r?.ok) this.currentUser.set(r.datos.usuario); },
+      error: () => { try { localStorage.removeItem('bvia-session-token'); } catch {} }
+    });
+  }
+
+  protected crearLugarAdmin(): void {
+    this.adminMensaje.set(null);
+    const token = this.tokenSesion();
+    this.http.post<any>('/api/admin/lugares', {
+      action: 'crear',
+      lugar: {
+        nombre: this.adminNombreLugar(), tipo: 'cultura', zona: null,
+        descripcion: '', etiquetas: '', lat: -17.3935, lng: -66.1570,
+        precio_min: 0, precio_max: 0, duracion_min: 60,
+        fuente: 'Pendiente de verificación administrativa',
+        departamento: this.adminDepartamento(), imagen_url: null, galeria_urls: []
+      }
+    }, { headers: { Authorization: `Bearer ${token}` } }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: r => { this.adminMensaje.set(r?.ok ? 'Lugar creado. Completa sus datos y verifica la información antes de publicarlo.' : (r?.error || 'No se pudo crear.')); this.adminNombreLugar.set(''); },
+      error: e => this.adminMensaje.set(e.error?.error || 'No se pudo conectar con el backend.')
+    });
+  }
 
   protected irA(tab: 'inicio' | 'explorar' | 'rutas' | 'guardados' | 'perfil'): void {
     this.activeTab.set(tab);
@@ -287,6 +363,7 @@ export class PlanificadorPageComponent implements OnInit {
   protected readonly alternativaDisponible = signal(false);
 
   ngOnInit(): void {
+    this.cargarSesion();
     try {
       const stored = localStorage.getItem('bolivia-viva-saved-routes');
       if (stored) this.savedRoutes.set(JSON.parse(stored));

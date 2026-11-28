@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { corsHeaders, error, ErrorHttp, manejarError } from './respuestas';
 
-type Metodo = 'GET' | 'POST';
+type Metodo = 'GET' | 'POST' | 'DELETE';
 
 export function crearHandler(
   metodo: Metodo,

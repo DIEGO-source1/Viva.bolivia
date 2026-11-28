@@ -9,7 +9,11 @@
       <span>{{ selectedDepartment() }}, Bolivia</span>
       <button type="button" (click)="solicitarUbicacion()" aria-label="Detectar ubicación">⌖</button>
     </div>
-    <button class="topbar-avatar" type="button" (click)="irA('perfil')" aria-label="Abrir perfil">A</button>
+    @if (currentUser(); as user) {
+      <button class="topbar-avatar" type="button" (click)="irA('perfil')" [attr.aria-label]="'Cuenta de ' + user.nombre">{{ user.nombre.slice(0,1).toUpperCase() }}</button>
+    } @else {
+      <button class="topbar-avatar auth-top-button" type="button" (click)="abrirAuth('login')" aria-label="Iniciar sesión">Entrar</button>
+    }
   </header>
 
   <main class="mobile-content">
@@ -144,11 +148,28 @@
     }
 
     @if (activeTab() === 'perfil') {
-      <section class="subpage-heading"><span class="eyebrow">TU PASAPORTE CULTURAL</span><h1>Viajero de<br><em>corazón.</em></h1><p>Tu historia por los nueve departamentos empieza con cada experiencia.</p></section>
-      <div class="passport-card"><div class="passport-top"><span>BOLIVIA VIVA AI</span><span>01 / 09</span></div><div class="passport-seal">V</div><h2>Pasaporte cultural</h2><p>Explora destinos y sabores para desbloquear tus próximas insignias.</p><div class="passport-progress"><span></span></div><small>Progreso disponible cuando se habilite el registro de visitas.</small></div>
-      <div class="profile-options"><div><span>✧</span><strong>Medallas culturales</strong><small>Próximamente: insignias por visitas y experiencias confirmadas</small></div><div><span>◉</span><strong>Voces de Bolivia</strong><small>Relatos de comerciantes, guías y tradiciones locales</small></div><div><span>⌖</span><strong>Preferencias de viaje</strong><small>{{ selectedDepartment() }} como destino actual</small></div></div>
-      <section class="voices-card"><span class="eyebrow">VOCES DE BOLIVIA</span><h2>Las historias también<br><em>son parte del viaje.</em></h2><p>Un espacio para escuchar relatos de mercados, cocinas familiares, guías locales y tradiciones de los nueve departamentos.</p><button type="button" (click)="hablarTexto('Bienvenido a Voces de Bolivia. Muy pronto podrás escuchar relatos de comerciantes, guías y comunidades de los nueve departamentos.')">Escuchar presentación 🔊</button><small>Audio de presentación. Los testimonios reales se incorporarán con autorización de sus protagonistas.</small></section>
+      @if (currentUser(); as user) {
+        <section class="subpage-heading"><span class="eyebrow">{{ user.rol === 'admin' ? 'CENTRO DE ADMINISTRACIÓN' : 'TU CUENTA DE VIAJERO' }}</span><h1>Hola,<br><em>{{ user.nombre }}.</em></h1><p>{{ user.email }}</p></section>
+        @if (user.rol === 'admin') {
+          <section class="admin-mini-panel">
+            <span class="eyebrow">ADMINISTRADOR ÚNICO</span><h2>Gestionar contenido</h2>
+            <p>Registra un lugar en el catálogo. Los datos de ubicación y precio iniciales deben revisarse antes de publicarse.</p>
+            <label>Nombre del lugar<input [ngModel]="adminNombreLugar()" (ngModelChange)="adminNombreLugar.set($event)" placeholder="Nombre del destino"/></label>
+            <label>Departamento<select [ngModel]="adminDepartamento()" (ngModelChange)="adminDepartamento.set($event)"><option>La Paz</option><option>Santa Cruz</option><option>Cochabamba</option><option>Oruro</option><option>Potosí</option><option>Chuquisaca</option><option>Tarija</option><option>Beni</option><option>Pando</option></select></label>
+            <button class="primary-action" type="button" [disabled]="adminNombreLugar().trim().length < 2" (click)="crearLugarAdmin()">Crear registro pendiente</button>
+            @if (adminMensaje()) { <p role="status">{{ adminMensaje() }}</p> }
+          </section>
+        } @else {
+          <section class="saved-card"><span class="saved-icon">♡</span><h2>Tu espacio viajero</h2><p>Guarda destinos y rutas en tu cuenta para consultarlos desde otros dispositivos.</p><button class="secondary-action" type="button" (click)="irA('guardados')">Ver mis guardados ↗</button></section>
+        }
+        <button class="secondary-action" type="button" (click)="cerrarSesion()">Cerrar sesión</button>
+      } @else {
+        <section class="subpage-heading"><span class="eyebrow">TU PASAPORTE CULTURAL</span><h1>Viaja con<br><em>tu propia cuenta.</em></h1><p>Regístrate para guardar tus rutas y destinos favoritos.</p></section>
+        <div class="saved-card"><span class="saved-icon">◎</span><h2>Bienvenido a Bolivia Viva</h2><p>Inicia sesión o crea una cuenta gratuita de visitante.</p><button class="primary-action" type="button" (click)="abrirAuth('login')">Iniciar sesión</button><button class="secondary-action" type="button" (click)="abrirAuth('registro')">Crear cuenta</button></div>
+      }
+      <section class="profile-options"><div><span>✧</span><strong>Medallas culturales</strong><small>Insignias por experiencias confirmadas</small></div><div><span>◉</span><strong>Voces de Bolivia</strong><small>Historias de comunidades y tradiciones locales</small></div></section>
     }
+
   </main>
 
   <nav class="bottom-nav" aria-label="Navegación inferior">
@@ -158,4 +179,24 @@
     <button type="button" [class.active]="activeTab() === 'guardados'" (click)="irA('guardados')"><span>♡</span><small>Guardados</small></button>
     <button type="button" [class.active]="activeTab() === 'perfil'" (click)="irA('perfil')"><span>◎</span><small>Perfil</small></button>
   </nav>
+
+  @if (authMode()) {
+    <div class="auth-backdrop" role="presentation" (click)="cerrarAuth()">
+      <section class="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-title" (click)="$event.stopPropagation()">
+        <button class="auth-close" type="button" (click)="cerrarAuth()" aria-label="Cerrar">×</button>
+        <span class="eyebrow">BOLIVIA VIVA AI · TU VIAJE COMIENZA AQUÍ</span>
+        <h2 id="auth-title">{{ authMode() === 'registro' ? 'Crea tu cuenta.' : 'Qué bueno verte.' }}</h2>
+        <p>{{ authMode() === 'registro' ? 'Guarda tus destinos y rutas favoritas.' : 'Ingresa a tu espacio viajero.' }}</p>
+        @if (authMode() === 'registro') {
+          <label>Nombre<input [ngModel]="authNombre()" (ngModelChange)="authNombre.set($event)" autocomplete="name" placeholder="Tu nombre"/></label>
+        }
+        <label>Correo electrónico<input type="email" [ngModel]="authEmail()" (ngModelChange)="authEmail.set($event)" autocomplete="email" placeholder="nombre@correo.com"/></label>
+        <label>Contraseña<input type="password" [ngModel]="authPassword()" (ngModelChange)="authPassword.set($event)" [attr.autocomplete]="authMode() === 'registro' ? 'new-password' : 'current-password'" placeholder="Mínimo 12 caracteres"/></label>
+        @if (authError()) { <p class="auth-error" role="alert">{{ authError() }}</p> }
+        <button class="primary-action" type="button" [disabled]="authBusy() || !authEmail().includes('@') || authPassword().length < (authMode() === 'registro' ? 12 : 1) || (authMode() === 'registro' && authNombre().trim().length < 2)" (click)="enviarAuth()">{{ authBusy() ? 'Un momento…' : authMode() === 'registro' ? 'Crear cuenta' : 'Iniciar sesión' }}</button>
+        <button class="auth-switch" type="button" (click)="abrirAuth(authMode() === 'registro' ? 'login' : 'registro')">{{ authMode() === 'registro' ? 'Ya tengo cuenta · Iniciar sesión' : 'No tengo cuenta · Registrarme' }}</button>
+        <small>La contraseña se protege en el servidor. No la compartas con nadie.</small>
+      </section>
+    </div>
+  }
 </div>

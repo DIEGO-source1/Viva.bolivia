@@ -3,8 +3,8 @@ import { env } from '../config/env';
 export function corsHeaders(): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': env.corsOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-admin-key',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-admin-key, x-admin-bootstrap-secret',
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   };
 }
 
