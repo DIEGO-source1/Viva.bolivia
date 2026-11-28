@@ -45,18 +45,21 @@ export async function generarRutaConIA(e: EntradaRutaIA): Promise<RespuestaRuta>
   const tokens: Tokens = { entrada: 0, salida: 0 };
   let falloIA = false;
 
-  // 1. Entender el pedido
+  // 1. Interpretar datos básicos sin proveedor externo.
+  // El modo gratuito usa reglas deterministas y nunca necesita una API key.
   let intencion: Intencion | null = null;
-  try {
-    const r = await extraerIntencion(e.texto);
-    intencion = r.intencion;
-    sumar(tokens, r.tokens);
-  } catch (err) {
-    if (!(err instanceof ErrorIA)) throw err;
-    console.error('[ruta] IA no disponible:', err.message);
-    await guardarRegistro({ tipo: 'ruta_ia', estado: 'error_ia', ms: performance.now() - inicio, tokens, fallo_ia: true });
-    // Manejo de errores: el frontend muestra el formulario sin IA.
-    throw new ErrorHttp(503, 'El asistente no está disponible ahora. Usa el formulario.', { alternativa: '/ruta-sin-ia' });
+  const datosLocales = extraerIntencionLocal(e.texto, e.idioma ?? 'es');
+  if (datosLocales) {
+    intencion = datosLocales;
+  } else if (process.env.GEMINI_API_KEY) {
+    try {
+      const r = await extraerIntencion(e.texto);
+      intencion = r.intencion;
+      sumar(tokens, r.tokens);
+    } catch (err) {
+      if (!(err instanceof ErrorIA)) throw err;
+      console.warn('[ruta] Gemini no disponible; se solicita completar el formulario:', err.message);
+    }
   }
 
   if (!intencion) {
@@ -91,19 +94,21 @@ export async function generarRutaConIA(e: EntradaRutaIA): Promise<RespuestaRuta>
 
   // 4. Redactar con IA, validar, y usar plantilla si algo falla
   let itinerario: Itinerario | null = null;
-  try {
-    const r = await redactarItinerario(ruta, idioma, intencion.preferencias);
-    sumar(tokens, r.tokens);
-    const p = ItinerarioSchema.safeParse(r.datos);
-    if (p.success) {
-      const v = validarItinerario(p.data, ruta);
-      if (v.valido) itinerario = p.data;
-      else console.warn('[ruta] texto de IA rechazado:', v.problemas);
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      const r = await redactarItinerario(ruta, idioma, intencion.preferencias);
+      sumar(tokens, r.tokens);
+      const p = ItinerarioSchema.safeParse(r.datos);
+      if (p.success) {
+        const v = validarItinerario(p.data, ruta);
+        if (v.valido) itinerario = p.data;
+        else console.warn('[ruta] texto de Gemini rechazado:', v.problemas);
+      }
+    } catch (err) {
+      if (!(err instanceof ErrorIA)) throw err;
+      falloIA = true;
+      console.error('[ruta] fallo al redactar con Gemini:', err.message);
     }
-  } catch (err) {
-    if (!(err instanceof ErrorIA)) throw err;
-    falloIA = true;
-    console.error('[ruta] fallo al redactar:', err.message);
   }
 
   const texto_fuente = itinerario ? 'ia' : 'plantilla';
@@ -184,6 +189,42 @@ async function armarRuta(p: {
   const v = validarRuta(ruta, restricciones);
   if (!v.valido) throw new Error(`Ruta inválida: ${v.problemas.join('; ')}`);
   return ruta;
+}
+
+function extraerIntencionLocal(texto: string, idioma: Idioma): Intencion | null {
+  const normalizado = texto.toLowerCase().replace(/,/g, '.');
+  const presupuestoMatch =
+    normalizado.match(/(?:bs\.?\s*|bolivianos?\s*)(\d+(?:\.\d+)?)/i) ??
+    normalizado.match(/(\d+(?:\.\d+)?)\s*(?:bs\.?|bolivianos?)/i);
+  const horasMatch = normalizado.match(/(\d+(?:\.\d+)?)\s*(?:horas?|hrs?)/i);
+  const minutosMatch = normalizado.match(/(\d+)\s*minutos?/i);
+  const presupuesto = presupuestoMatch ? Number(presupuestoMatch[1]) : null;
+  const horas = horasMatch
+    ? Number(horasMatch[1])
+    : minutosMatch
+      ? Number(minutosMatch[1]) / 60
+      : null;
+  if (presupuesto === null && horas === null) return null;
+
+  const tipos: TipoLugar[] = [];
+  if (/comer|comida|gastronom|almorz|cenar|desayun|plato|silpancho|salteñ|pique macho/i.test(normalizado)) tipos.push('comida');
+  if (/museo|historia|cultura|iglesia|colonial/i.test(normalizado)) tipos.push('cultura');
+  if (/parque|laguna|naturaleza|mirador|paisaje/i.test(normalizado)) tipos.push('naturaleza');
+  if (/aventura|trekking|sender|caminata/i.test(normalizado)) tipos.push('naturaleza');
+
+  const zonaMatch = normalizado.match(/(?:en|por|cerca de)\s+([a-záéíóúñ ]{3,50})/i);
+  const zona = zonaMatch?.[1]?.trim() ?? null;
+  const stopWords = /\b(tengo|bs|bolivianos?|horas?|hrs?|minutos?|quiero|hacer|conocer|visitar|comer|una|un|en|por|cerca|de|la|el|y|dos|tres|cuatro)\b/gi;
+  const preferencias = normalizado.replace(stopWords, ' ').replace(/\s+/g, ' ').trim().slice(0, 300);
+
+  return {
+    presupuesto: presupuesto !== null && Number.isFinite(presupuesto) && presupuesto > 0 ? presupuesto : null,
+    horas: horas !== null && Number.isFinite(horas) && horas > 0 ? horas : null,
+    tipos,
+    zona,
+    preferencias,
+    idioma,
+  };
 }
 
 function horaLocalBolivia(): string {

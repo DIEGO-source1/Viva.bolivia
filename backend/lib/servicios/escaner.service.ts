@@ -16,6 +16,9 @@ export interface EntradaEscaner {
 
 export async function escanearPlato(e: EntradaEscaner) {
   const inicio = performance.now();
+  if (!process.env.GEMINI_API_KEY) {
+    throw new ErrorHttp(503, 'VIVA LENS requiere configurar Gemini API. Mientras tanto puedes buscar el plato por nombre.');
+  }
   const nombres = await nombresPlatos();
   if (nombres.length === 0) throw new ErrorHttp(500, 'El catálogo de platos está vacío');
 
