@@ -1,8 +1,9 @@
 {
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://viva-bolivia-api.vercel.app/api/:path*"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
+  "functions": {
+    "api/*.ts": {
+      "maxDuration": 60
     }
-  ]
+  }
 }
